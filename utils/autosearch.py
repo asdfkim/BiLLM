@@ -1,6 +1,4 @@
-from re import L
 import numpy as np
-from pyparsing import line
 import torch
 from binary import high_order_residual
 from utils.mask import generate_structural_mask
@@ -55,11 +53,10 @@ def structural_searching(origin_matrix, up_lim=30):
 
     search_matrix = origin_matrix * (~mask3)
 
-    flat_abs_tensor = torch.abs(search_matrix).view(-1)
-    percentiles = torch.linspace(0.10, 0.90, 81).to(origin_matrix.device)
-    percentile_values = torch.tensor(
-        np.quantile(flat_abs_tensor.detach().cpu().numpy(), q=percentiles.cpu().numpy(), axis=None, keepdims=False)
-    ).to(origin_matrix.device)
+    flat_abs_tensor = torch.abs(search_matrix).reshape(-1)
+    flat_abs_tensor = torch.nan_to_num(flat_abs_tensor, nan=0.0).float()
+    percentiles = torch.linspace(0.10, 0.90, 81, device=origin_matrix.device)
+    percentile_values = torch.quantile(flat_abs_tensor, percentiles)
 
     # search for the optimal split for the second group, high order=1,, non-structured search
     for split_value in percentile_values:
@@ -71,7 +68,6 @@ def structural_searching(origin_matrix, up_lim=30):
         if quantize_error < minimal_value:
             minimal_value = quantize_error
             optimal_split = split_value
-        tmp = torch.max(torch.abs(search_matrix)).item()
     
     return optimal_split, mask3
 
