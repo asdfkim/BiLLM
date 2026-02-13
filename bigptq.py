@@ -1,6 +1,5 @@
 import math
 import time
-from exceptiongroup import catch
 import torch
 import torch.nn as nn
 import transformers
@@ -59,6 +58,7 @@ class BRAGPTQ:
                     partition=3, 
                     orders=(1,1,2),
                     ):
+        assert partition == 3, "This implementation assumes partition=3 (mask1/mask2/mask3)."
         W = self.layer.weight.data.clone()
         if isinstance(self.layer, nn.Conv2d):
             W = W.flatten(1)
