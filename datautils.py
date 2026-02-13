@@ -15,7 +15,9 @@ def set_seed(seed):
 Generate tokenizer and return it to preload datasets by converting them to embedded vectors instead of natural words
 '''
 def get_tokenizer(model):
-    if "llama" in model.lower():
+    model_l = model.lower()
+    
+    if "llama" in model_l:
         tokenizer = LlamaTokenizer.from_pretrained(model, use_fast=False)
         # fix for transformer 4.28.0.dev0 compatibility
         if tokenizer.bos_token_id != 1 or tokenizer.eos_token_id != 2:
@@ -24,8 +26,21 @@ def get_tokenizer(model):
                 tokenizer.eos_token_id = 2
             except AttributeError:
                 pass
+    elif "qwen" in model_l:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model,
+            trust_remote_code=True,
+            use_fast=True,
+        )
     else:
-        tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False)
+        tokenizer = AutoTokenizer.from_pretrained(
+            model,
+            use_fast=False
+        )
+
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+        
     return tokenizer
 
 def get_wikitext2(nsamples, seed, seqlen, model, tokenizer):
@@ -101,7 +116,8 @@ def get_c4(nsamples, seed, seqlen, model, tokenizer):
     return trainloader, valenc
 
 def get_loaders(name, nsamples=128, seed=0, seqlen=2048, model=''):
-    cache_file=f'cache/{name}_{nsamples}_{seed}_{seqlen}_{model}.pt'
+    safe_model = model.replace("/", "_")
+    cache_file = f'cache/{name}_{nsamples}_{seed}_{seqlen}_{safe_model}.pt'
     try:
         return torch.load(cache_file)
     except:
