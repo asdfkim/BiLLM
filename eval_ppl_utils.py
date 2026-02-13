@@ -3,11 +3,6 @@ import time
 import torch
 import torch.nn as nn
 
-좋아요. Qwen3-8B 전용으로 간단하게 정리한 eval_ppl 함수를 만들어드릴게요. OPT/decoder 관련 코드는 제거하고, llama_eval 스타일로 통합했습니다.
-
-import torch
-import torch.nn as nn
-
 @torch.no_grad()
 def qwen3_eval(model, testenc, dev, dataset: str = "", log_wandb: bool = False):
     """
