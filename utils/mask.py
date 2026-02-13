@@ -7,13 +7,14 @@ Generate the structural mask on the basis of the split border
 def generate_structural_mask(origin_matrix, mask3, braq1_border):
     mask1_2 = ~mask3
 
-    binary_group = torch.abs(origin_matrix*mask1_2)
+    binary_group = torch.abs(origin_matrix)
+    binary_group = binary_group.masked_fill(~mask1_2, 0)
 
     mask2 = binary_group >= braq1_border
     mask1 = binary_group < braq1_border
 
-    mask1 = mask1 * mask1_2
-    mask2 = mask2 * mask1_2
+    mask1 = mask1 & mask1_2
+    mask2 = mask2 & mask1_2
 
     return mask1, mask2
 
