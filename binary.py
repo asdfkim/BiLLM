@@ -75,7 +75,7 @@ class Binarization(nn.Module):
             perchannel = True
             weight = True
             dev = w.device
-            maxq = torch.tensor(2 ** bits - 1)
+            maxq = torch.tensor(2 ** bits - 1, device=dev, dtype=w.dtype)
             scale = torch.zeros(1)
             zero = torch.zeros(1)
 
@@ -108,6 +108,7 @@ class Binarization(nn.Module):
             xmin[tmp] = -1
             xmax[tmp] = +1
             scale = (xmax - xmin) / maxq
+            scale = torch.clamp(scale, min=1e-8)
             zero = torch.round(-xmin / scale)
             if not perchannel:
                 if weight:
