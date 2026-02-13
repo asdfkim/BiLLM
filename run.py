@@ -27,6 +27,10 @@ def get_model(model):
 
         model = LlamaForCausalLM.from_pretrained(model, torch_dtype="auto")
         model.seqlen = 2048
+    elif "qwen" in model.lower():
+        from transformers import AutoModelForCausalLM
+        model = AutoModelForCausalLM.from_pretrained(model, torch_dtype="auto", trust_remote_code=True)
+        model.seqlen = getattr(model.config, "seq_len", getattr(model.config, "max_position_embeddings"))
     return model
 
 
@@ -63,6 +67,11 @@ def quant_sequential(model, dataloader, dev):
         layers = model.model.layers
         model.model.embed_tokens = model.model.embed_tokens.to(dev)
         model.model.norm = model.model.norm.to(dev)
+    elif "qwen" in args.model.lower():
+        layers = model.model.layers
+        model.model.embed_tokens = model.model.embed_tokens.to(dev)
+        if hasattr(model.model, "norm") and model.model.norm is not None:
+            model.model.norm = model.model.norm.to(dev)
     layers[0] = layers[0].to(dev)
 
     dtype = next(iter(model.parameters())).dtype
@@ -264,7 +273,7 @@ if __name__ == "__main__":
     save_title = f"{args.model}_{args.dataset}_{args.low_quant_method}_{groupsize}_{args.salient_metric}"
     save_file = "./output/" + save_title.replace("/", "_") + ".pt"
     if args.load_quantized:
-        model = get_model(save_file)
+        model = torch.load(save_file)
         model.eval()
     else: # braq
         model = get_model(args.model)
@@ -293,9 +302,12 @@ if __name__ == "__main__":
         print(dataset)
         if "opt" in args.model:
             from eval_ppl_utils import opt_eval
-
             opt_eval(model, testloader, device, dataset, args.log_wandb)
+            
         elif "llama" in args.model:
             from eval_ppl_utils import llama_eval
-
             llama_eval(model, testloader, device, dataset, args.log_wandb)
+
+        elif "qwen" in args.model.lower():
+            from eval_ppl_utils import qwen3_eval
+            qwen3_eval(model, testloader, device, dataset, args.log_wandb)
